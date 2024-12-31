@@ -1,0 +1,103 @@
+import numpy as np
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_curve,
+    auc,
+    confusion_matrix
+)
+
+
+def obter_especificidade(real, predito):
+    """
+    Calcula a especificidade a partir da matriz de confusão.
+    """
+    matriz_confusao = confusion_matrix(real, predito)
+    verdadeiros_negativos = matriz_confusao[0, 0]
+    falsos_positivos = matriz_confusao[0, 1]
+    return (
+        verdadeiros_negativos / (verdadeiros_negativos + falsos_positivos)
+        if (verdadeiros_negativos + falsos_positivos) > 0
+        else 0
+    )
+
+
+def exibir_matriz_confusao(real, predito, categorias):
+    """
+    Gera um gráfico de calor para a matriz de confusão normalizada.
+    """
+    matriz_confusao = confusion_matrix(real, predito)
+    matriz_normalizada = matriz_confusao.astype("float") / matriz_confusao.sum(axis=1)[:, np.newaxis]
+    df_matriz = pd.DataFrame(matriz_normalizada, index=categorias, columns=categorias)
+
+    plt.figure(figsize=(8, 8))
+    sns.heatmap(df_matriz, annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Matriz de Confusão (Normalizada)")
+    plt.ylabel("Classe Real")
+    plt.xlabel("Classe Predita")
+    plt.tight_layout()
+    plt.show()
+
+
+def gerar_curva_roc(real, probabilidades):
+    """
+    Gera a curva ROC e calcula a AUC.
+    """
+    fpr, tpr, _ = roc_curve(real, probabilidades)
+    area_sob_curva = auc(fpr, tpr)
+
+    plt.figure(figsize=(8, 8))
+    plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"AUC = {area_sob_curva:.2f}")
+    plt.plot([0, 1], [0, 1], color="gray", linestyle="--")
+    plt.title("Curva ROC")
+    plt.xlabel("Taxa de Falsos Positivos")
+    plt.ylabel("Taxa de Verdadeiros Positivos")
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.show()
+
+
+def exibir_metricas(nome_metrica, valor):
+    """
+    Mostra na tela as métricas de avaliação.
+    """
+    print(f"{nome_metrica}: {valor:.2f}")
+
+
+def avaliar_modelo(real, predito, probabilidades, categorias):
+    """
+    Avalia o desempenho de um modelo de classificação com diversas métricas.
+    """
+    print("Resultados de Avaliação:")
+    acuracia = accuracy_score(real, predito)
+    precisao = precision_score(real, predito, average="binary")
+    sensibilidade = recall_score(real, predito, average="binary")
+    especificidade = obter_especificidade(real, predito)
+    f1 = f1_score(real, predito, average="binary")
+
+    exibir_metricas("Acurácia", acuracia)
+    exibir_metricas("Precisão", precisao)
+    exibir_metricas("Sensibilidade", sensibilidade)
+    exibir_metricas("Especificidade", especificidade)
+    exibir_metricas("F1-Score", f1)
+
+    print("\nMatriz de Confusão:")
+    print(confusion_matrix(real, predito))
+
+    exibir_matriz_confusao(real, predito, categorias)
+    gerar_curva_roc(real, probabilidades)
+
+if __name__ == "__main__":
+    # Dados simulados para exemplificação
+    y_real = [0, 1, 1, 0, 1, 0, 1]
+    y_predito = [0, 1, 0, 0, 1, 1, 1]
+    pontuacoes = [0.1, 0.9, 0.4, 0.3, 0.8, 0.7, 0.9]  # Probabilidades previstas
+    rotulos = [0, 1]
+
+    # Avaliar o modelo com os dados fornecidos
+    avaliar_modelo(y_real, y_predito, pontuacoes, rotulos)
